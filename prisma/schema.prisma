@@ -1,0 +1,334 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoleEnum {
+  RESIDENT
+  DOORMAN
+  MANAGER
+  ASSISTANT_MANAGER
+  STAFF
+  ADMIN
+}
+
+enum PackageStatus {
+  RECEIVED
+  NOTIFIED
+  PICKED_UP
+}
+
+enum OccurrenceStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+enum ReceiptStatus {
+  PENDING_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+enum InvoiceType {
+  CONDOMINIUM_FEE
+  FINE
+  BOOKING
+  OTHER
+}
+
+model Subscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @db.Uuid
+  planCode  String
+  status    String   @default("ACTIVE")
+  startsAt  DateTime @default(now())
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  email         String?
+  phone         String?
+  status        String         @default("ACTIVE")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+
+  condominiums  Condominium[]
+}
+
+model Condominium {
+  id             String                @id @default(uuid()) @db.Uuid
+  clientId       String                @db.Uuid
+  name           String
+  address        String?
+  rulesJson      Json?
+  timezone       String                @default("America/Sao_Paulo")
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  client         Client                @relation(fields: [clientId], references: [id])
+  units          Unit[]
+  spaces         Space[]
+  bookings       Booking[]
+  packages       Package[]
+  occurrences    Occurrence[]
+  invoices       Invoice[]
+  payments       Payment[]
+  announcements  Announcement[]
+  documents      Document[]
+  conversations  ConversationContext[]
+  members        UserCondominium[]
+}
+
+model User {
+  id                       String                @id @default(uuid()) @db.Uuid
+  fullName                 String
+  phone                    String
+  status                   String                @default("ACTIVE")
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+
+  condominiums             UserCondominium[]
+  roles                    UserRole[]
+  bookingsRequested        Booking[]             @relation("BookingBookedBy")
+  packagesReceived         Package[]             @relation("PackageReceivedBy")
+  occurrencesCreated       Occurrence[]          @relation("OccurrenceCreatedBy")
+  occurrencesAssigned      Occurrence[]          @relation("OccurrenceAssignedTo")
+  announcementsCreated     Announcement[]        @relation("AnnouncementCreatedBy")
+  paymentReceiptsSent      PaymentReceipt[]      @relation("ReceiptSentBy")
+  paymentReceiptsReviewed  PaymentReceipt[]      @relation("ReceiptReviewedBy")
+  documentsUploaded        Document[]            @relation("DocumentUploadedBy")
+  conversations            ConversationContext[]
+  @@unique([phone])
+}
+
+model UserCondominium {
+  userId         String      @db.Uuid
+  condominiumId  String      @db.Uuid
+  isPrimary      Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  condominium    Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+
+  @@id([userId, condominiumId])
+}
+
+model UserRole {
+  userId    String   @db.Uuid
+  role      RoleEnum
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+}
+
+model Unit {
+  id             String       @id @default(uuid()) @db.Uuid
+  condominiumId  String       @db.Uuid
+  code           String
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  condominium    Condominium  @relation(fields: [condominiumId], references: [id])
+  bookings       Booking[]
+  packages       Package[]
+  occurrences    Occurrence[]
+  invoices       Invoice[]
+
+  @@unique([condominiumId, code])
+}
+
+model Space {
+  id             String       @id @default(uuid()) @db.Uuid
+  condominiumId  String       @db.Uuid
+  name           String
+  active         Boolean      @default(true)
+  isPaid         Boolean      @default(false)
+  priceAmount    Decimal?
+  rulesJson      Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  condominium    Condominium  @relation(fields: [condominiumId], references: [id])
+  bookings       Booking[]
+}
+
+model Booking {
+  id             String         @id @default(uuid()) @db.Uuid
+  condominiumId  String         @db.Uuid
+  spaceId        String         @db.Uuid
+  unitId         String         @db.Uuid
+  bookedById     String         @db.Uuid
+  startAt        DateTime
+  endAt          DateTime
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  condominium    Condominium    @relation(fields: [condominiumId], references: [id])
+  space          Space          @relation(fields: [spaceId], references: [id])
+  unit           Unit           @relation(fields: [unitId], references: [id])
+  bookedBy       User           @relation("BookingBookedBy", fields: [bookedById], references: [id])
+  payments       Payment[]
+}
+
+model Package {
+  id             String         @id @default(uuid()) @db.Uuid
+  condominiumId  String         @db.Uuid
+  unitId         String         @db.Uuid
+  receivedById   String         @db.Uuid
+  description    String?
+  status         PackageStatus  @default(RECEIVED)
+  receivedAt     DateTime       @default(now())
+  pickedUpAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  condominium    Condominium    @relation(fields: [condominiumId], references: [id])
+  unit           Unit           @relation(fields: [unitId], references: [id])
+  receivedBy     User           @relation("PackageReceivedBy", fields: [receivedById], references: [id])
+}
+
+model Occurrence {
+  id             String            @id @default(uuid()) @db.Uuid
+  condominiumId  String            @db.Uuid
+  unitId         String            @db.Uuid
+  createdById    String            @db.Uuid
+  assignedToId   String?           @db.Uuid
+  category       String?
+  title          String?
+  description    String
+  status         OccurrenceStatus  @default(OPEN)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  closedAt       DateTime?
+
+  condominium    Condominium       @relation(fields: [condominiumId], references: [id])
+  unit           Unit              @relation(fields: [unitId], references: [id])
+  createdBy      User              @relation("OccurrenceCreatedBy", fields: [createdById], references: [id])
+  assignedTo     User?             @relation("OccurrenceAssignedTo", fields: [assignedToId], references: [id])
+}
+
+model Invoice {
+  id             String         @id @default(uuid()) @db.Uuid
+  condominiumId  String         @db.Uuid
+  unitId         String         @db.Uuid
+  type           InvoiceType
+  competence     String? // month or period
+  dueDate        DateTime
+  amount         Decimal
+  status         InvoiceStatus  @default(OPEN)
+  barcode        String?
+  externalRef    String? // external provider reference ID (gateway/bank/ERP) for reconciliation and sync
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  condominium    Condominium    @relation(fields: [condominiumId], references: [id])
+  unit           Unit           @relation(fields: [unitId], references: [id])
+  payments       Payment[]
+}
+
+model Payment {
+  id             String         @id @default(uuid()) @db.Uuid
+  condominiumId  String         @db.Uuid
+  invoiceId      String?        @db.Uuid
+  bookingId      String?        @db.Uuid
+  amount         Decimal
+  method         String?
+  status         PaymentStatus  @default(PENDING)
+  paidAt         DateTime?
+  externalRef    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  condominium    Condominium    @relation(fields: [condominiumId], references: [id])
+  invoice        Invoice?       @relation(fields: [invoiceId], references: [id])
+  booking        Booking?       @relation(fields: [bookingId], references: [id])
+  receipts       PaymentReceipt[]
+}
+
+model PaymentReceipt {
+  id           String        @id @default(uuid()) @db.Uuid
+  paymentId    String        @db.Uuid
+  sentById     String        @db.Uuid
+  status       ReceiptStatus @default(PENDING_REVIEW)
+  reviewedById String?       @db.Uuid
+  reviewedAt   DateTime?
+  note         String?
+  createdAt    DateTime      @default(now())
+
+  payment      Payment       @relation(fields: [paymentId], references: [id])
+  sentBy       User          @relation("ReceiptSentBy", fields: [sentById], references: [id])
+  reviewedBy   User?         @relation("ReceiptReviewedBy", fields: [reviewedById], references: [id])
+}
+
+model Announcement {
+  id             String       @id @default(uuid()) @db.Uuid
+  condominiumId  String       @db.Uuid
+  createdById    String       @db.Uuid
+  title          String
+  content        String
+  status         String       @default("DRAFT")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  condominium    Condominium  @relation(fields: [condominiumId], references: [id])
+  createdBy      User         @relation("AnnouncementCreatedBy", fields: [createdById], references: [id])
+}
+
+model Document {
+  id             String       @id @default(uuid()) @db.Uuid
+  condominiumId  String       @db.Uuid
+  uploadedById   String       @db.Uuid
+  title          String
+  category       String?
+  visibility     String?
+  fileUrl        String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  condominium    Condominium  @relation(fields: [condominiumId], references: [id])
+  uploadedBy     User         @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+}
+
+model ConversationContext {
+  id             String       @id @default(uuid()) @db.Uuid
+  condominiumId  String       @db.Uuid
+  userId         String?      @db.Uuid
+  phone          String?
+  state          String
+  contextJson    Json?
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  condominium    Condominium  @relation(fields: [condominiumId], references: [id])
+  user           User?        @relation(fields: [userId], references: [id])
+}
