@@ -9,10 +9,6 @@ datasource db {
 
 enum RoleEnum {
   RESIDENT
-  DOORMAN
-  MANAGER
-  ASSISTANT_MANAGER
-  STAFF
   ADMIN
 }
 
