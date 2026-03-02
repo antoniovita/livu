@@ -51,6 +51,18 @@ enum InvoiceType {
   OTHER
 }
 
+enum WhatsAppChannelStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ConversationState {
+  IDLE
+  AWAITING_UNIT_SELECTION
+  AWAITING_MAIN_MENU_SELECTION
+  AWAITING_OCCURRENCE_INPUT
+}
+
 model Subscription {
   id        String   @id @default(uuid()) @db.Uuid
   clientId  String   @db.Uuid
@@ -84,6 +96,7 @@ model Condominium {
   address        String?
   rulesJson      Json?
   timezone       String                @default("America/Sao_Paulo")
+  botWelcomeMessageJson Json?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -97,7 +110,8 @@ model Condominium {
   payments       Payment[]
   announcements  Announcement[]
   documents      Document[]
-  conversations  ConversationContext[]
+  whatsappChannel  WhatsAppChannel?
+  conversations    ConversationContext[]
   members        UserCondominium[]
 }
 
@@ -108,6 +122,7 @@ model User {
   status                   String                @default("ACTIVE")
   createdAt                DateTime              @default(now())
   updatedAt                DateTime              @updatedAt
+  deletedAt                DateTime?
 
   condominiums             UserCondominium[]
   roles                    UserRole[]
@@ -126,13 +141,18 @@ model User {
 model UserCondominium {
   userId         String      @db.Uuid
   condominiumId  String      @db.Uuid
+  unitId         String      @db.Uuid
   isPrimary      Boolean     @default(false)
   createdAt      DateTime    @default(now())
 
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   condominium    Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  unit           Unit        @relation(fields: [unitId], references: [id])
 
-  @@id([userId, condominiumId])
+  @@id([userId, condominiumId, unitId])
+  @@index([condominiumId, unitId])
+  @@index([userId, condominiumId])
+  @@index([userId])
 }
 
 model UserRole {
@@ -154,6 +174,8 @@ model Unit {
   updatedAt      DateTime     @updatedAt
 
   condominium    Condominium  @relation(fields: [condominiumId], references: [id])
+  userMembers    UserCondominium[]
+  selectedInConversations ConversationContext[]
   bookings       Booking[]
   packages       Package[]
   occurrences    Occurrence[]
@@ -172,6 +194,7 @@ model Space {
   rulesJson      Json?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
 
   condominium    Condominium  @relation(fields: [condominiumId], references: [id])
   bookings       Booking[]
@@ -315,16 +338,46 @@ model Document {
 }
 
 model ConversationContext {
-  id             String       @id @default(uuid()) @db.Uuid
-  condominiumId  String       @db.Uuid
-  userId         String?      @db.Uuid
-  phone          String?
-  state          String
-  contextJson    Json?
-  expiresAt      DateTime
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                           String       @id @default(uuid()) @db.Uuid
+  channelId                    String       @db.Uuid
+  condominiumId                String       @db.Uuid
+  userId                       String?      @db.Uuid
+  phone                        String
+  selectedUnitId               String?      @db.Uuid
+  
+  state                        ConversationState
+  contextJson                  Json?
+  expiresAt                    DateTime
+  lastInboundAt                DateTime?
+  lastOutboundAt               DateTime?
+  createdAt                    DateTime     @default(now())
+  updatedAt                    DateTime     @updatedAt
 
-  condominium    Condominium  @relation(fields: [condominiumId], references: [id])
-  user           User?        @relation(fields: [userId], references: [id])
+  channel                      WhatsAppChannel  @relation(fields: [channelId], references: [id])
+  condominium                  Condominium      @relation(fields: [condominiumId], references: [id])
+  user                         User?            @relation(fields: [userId], references: [id])
+  selectedUnit                 Unit?            @relation(fields: [selectedUnitId], references: [id])
+
+  @@index([channelId, phone])
+  @@index([condominiumId, phone])
+  @@index([expiresAt])
+  @@index([selectedUnitId])
+}
+
+model WhatsAppChannel {
+  id             String                @id @default(uuid()) @db.Uuid
+  condominiumId  String                @unique @db.Uuid
+  provider       String
+  channelKey     String                @unique
+  phoneNumber    String
+  displayName    String
+  status         WhatsAppChannelStatus @default(ACTIVE)
+  webhookSecret  String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  condominium    Condominium           @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  conversations  ConversationContext[]
+
+  @@index([status])
 }
