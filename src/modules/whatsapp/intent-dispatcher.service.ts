@@ -28,7 +28,7 @@ export class IntentDispatcherService {
     if (params.identity.status === 'NO_MEMBERSHIP') {
       return {
         state: 'IDLE',
-        text: `Seu numero nao possui vinculo ativo neste condominio. Fale com a administracao.`,
+        text: `Seu numero nao possui residencia ativa neste condominio. Fale com a administracao.`,
         contextJson: {},
       };
     }
@@ -77,7 +77,7 @@ export class IntentDispatcherService {
     }
 
     if (command === 'trocar unidade') {
-      const memberships = await this.prisma.userCondominium.findMany({
+      const userResidences = await this.prisma.userCondominium.findMany({
         where: {
           userId: params.identity.userId!,
           condominiumId: params.condominiumId,
@@ -91,11 +91,11 @@ export class IntentDispatcherService {
         state: 'AWAITING_UNIT_SELECTION',
         text: this.buildUnitSelectionMessage(
           params.channelDisplayName,
-          memberships.map((membership) => ({
-            condominiumId: membership.condominiumId,
-            unitId: membership.unitId,
-            unitCode: membership.unit.code,
-            isPrimary: membership.isPrimary,
+          userResidences.map((userResidence) => ({
+            condominiumId: userResidence.condominiumId,
+            unitId: userResidence.unitId,
+            unitCode: userResidence.unit.code,
+            isPrimary: userResidence.isPrimary,
           })),
         ),
         userId: params.identity.userId!,

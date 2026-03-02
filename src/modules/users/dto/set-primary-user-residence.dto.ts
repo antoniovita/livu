@@ -1,6 +1,6 @@
 import { IsUUID } from 'class-validator';
 
-export class SetPrimaryMembershipDto {
+export class SetPrimaryUserResidenceDto {
   @IsUUID()
   condominiumId: string;
 

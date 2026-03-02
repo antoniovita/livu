@@ -61,6 +61,12 @@ export class SpacesService {
     });
   }
 
+  async permanentlyDelete(spaceId: string) {
+    return this.prisma.space.delete({
+      where: { id: spaceId },
+    });
+  }
+
   async restore(spaceId: string) {
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
@@ -88,6 +94,5 @@ export class SpacesService {
       },
     });
   }
-
 
 }

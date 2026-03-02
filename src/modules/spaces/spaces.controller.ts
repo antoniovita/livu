@@ -43,6 +43,11 @@ export class SpacesController {
     return this.spacesService.softDelete(spaceId);
   }
 
+  @Delete(':spaceId/permanent')
+  permanentlyDelete(@Param('spaceId', new ParseUUIDPipe()) spaceId: string) {
+    return this.spacesService.permanentlyDelete(spaceId);
+  }
+
   @Delete(':condominiumId/trash')
   clearTrash(@Param('condominiumId', new ParseUUIDPipe()) condominiumId: string) {
     return this.spacesService.clearTrash(condominiumId);

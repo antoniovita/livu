@@ -30,7 +30,7 @@ export class IdentityResolutionService {
       };
     }
 
-    const memberships = await this.prisma.userCondominium.findMany({
+    const userResidences = await this.prisma.userCondominium.findMany({
       where: {
         userId: user.id,
         condominiumId,
@@ -43,7 +43,7 @@ export class IdentityResolutionService {
       },
     });
 
-    if (memberships.length === 0) {
+    if (userResidences.length === 0) {
       return {
         status: 'NO_MEMBERSHIP',
         normalizedPhone,
@@ -53,30 +53,30 @@ export class IdentityResolutionService {
     }
 
     if (currentSelection?.unitId) {
-      const selectedMembership = memberships.find(
-        (membership) => membership.unitId === currentSelection.unitId,
+      const selectedUserResidence = userResidences.find(
+        (userResidence) => userResidence.unitId === currentSelection.unitId,
       );
 
-      if (selectedMembership) {
+      if (selectedUserResidence) {
         return {
           status: 'RESOLVED',
           normalizedPhone,
           userId: user.id,
           condominiumId,
-          unitId: selectedMembership.unitId,
+          unitId: selectedUserResidence.unitId,
         };
       }
     }
 
-    if (memberships.length === 1) {
-      const [membership] = memberships;
+    if (userResidences.length === 1) {
+      const [userResidence] = userResidences;
 
       return {
         status: 'RESOLVED',
         normalizedPhone,
         userId: user.id,
         condominiumId,
-        unitId: membership.unitId,
+        unitId: userResidence.unitId,
       };
     }
 
@@ -85,11 +85,11 @@ export class IdentityResolutionService {
       normalizedPhone,
       userId: user.id,
       condominiumId,
-      candidateUnits: memberships.map((membership) => ({
-        condominiumId: membership.condominiumId,
-        unitId: membership.unitId,
-        unitCode: membership.unit.code,
-        isPrimary: membership.isPrimary,
+      candidateUnits: userResidences.map((userResidence) => ({
+        condominiumId: userResidence.condominiumId,
+        unitId: userResidence.unitId,
+        unitCode: userResidence.unit.code,
+        isPrimary: userResidence.isPrimary,
       })),
     };
   }

@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AddUserMembershipDto } from './dto/add-user-membership.dto';
-import { SetPrimaryMembershipDto } from './dto/set-primary-membership.dto';
+import { AddUserResidenceDto } from './dto/add-user-residence.dto';
+import { SetPrimaryUserResidenceDto } from './dto/set-primary-user-residence.dto';
 
 @Injectable()
 export class UsersService {
@@ -52,28 +52,34 @@ export class UsersService {
   async create(dto: CreateUserDto) {
     await this.ensureUnitBelongsToCondominium(dto.condominiumId, dto.unitId);
 
-    return this.prisma.user.create({
-      data: {
-        fullName: dto.fullName,
-        phone: dto.phone,
-        status: 'ACTIVE',
-        condominiums: {
-          create: {
-            condominiumId: dto.condominiumId,
-            unitId: dto.unitId,
-            isPrimary: true,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          fullName: dto.fullName,
+          phone: dto.phone,
+          status: 'ACTIVE',
         },
-      },
+      });
+
+      await tx.userCondominium.create({
+        data: {
+          userId: user.id,
+          condominiumId: dto.condominiumId,
+          unitId: dto.unitId,
+          isPrimary: true,
+        },
+      });
+
+      return user;
     });
   }
 
-  async addMembership(userId: string, dto: AddUserMembershipDto) {
+  async addUserResidence(userId: string, dto: AddUserResidenceDto) {
     await this.ensureUserExists(userId);
     await this.ensureUnitBelongsToCondominium(dto.condominiumId, dto.unitId);
 
     if (dto.isPrimary) {
-      await this.unsetPrimaryMemberships(userId, dto.condominiumId);
+      await this.unsetPrimaryUserResidences(userId, dto.condominiumId);
     }
 
     return this.prisma.userCondominium.upsert({
@@ -112,6 +118,12 @@ export class UsersService {
     });
   }
 
+  async permanentlyDelete(userId: string) {
+    return this.prisma.user.delete({
+      where: { id: userId },
+    });
+  }
+
   async restore(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -144,7 +156,7 @@ export class UsersService {
     });
   }
 
-  async removeMembership(userId: string, condominiumId: string, unitId: string) {
+  async removeUserResidence(userId: string, condominiumId: string, unitId: string) {
     return this.prisma.userCondominium.delete({
       where: {
         userId_condominiumId_unitId: {
@@ -156,11 +168,11 @@ export class UsersService {
     });
   }
 
-  async setPrimaryMembership(userId: string, dto: SetPrimaryMembershipDto) {
+  async setPrimaryUserResidence(userId: string, dto: SetPrimaryUserResidenceDto) {
     await this.ensureUserExists(userId);
     await this.ensureUnitBelongsToCondominium(dto.condominiumId, dto.unitId);
 
-    await this.unsetPrimaryMemberships(userId, dto.condominiumId);
+    await this.unsetPrimaryUserResidences(userId, dto.condominiumId);
 
     return this.prisma.userCondominium.update({
       where: {
@@ -208,7 +220,7 @@ export class UsersService {
     }
   }
 
-  private async unsetPrimaryMemberships(userId: string, condominiumId: string) {
+  private async unsetPrimaryUserResidences(userId: string, condominiumId: string) {
     await this.prisma.userCondominium.updateMany({
       where: {
         userId,

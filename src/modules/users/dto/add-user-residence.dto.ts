@@ -1,6 +1,6 @@
 import { IsBoolean, IsOptional, IsUUID } from 'class-validator';
 
-export class AddUserMembershipDto {
+export class AddUserResidenceDto {
   @IsUUID()
   condominiumId: string;
 

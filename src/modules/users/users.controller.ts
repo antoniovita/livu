@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put }
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AddUserMembershipDto } from './dto/add-user-membership.dto';
-import { SetPrimaryMembershipDto } from './dto/set-primary-membership.dto';
+import { AddUserResidenceDto } from './dto/add-user-residence.dto';
+import { SetPrimaryUserResidenceDto } from './dto/set-primary-user-residence.dto';
 
 @Controller('users')
 export class UsersController {
@@ -31,12 +31,12 @@ export class UsersController {
     return this.usersService.create(createParams);
   }
 
-  @Post(':userId/memberships')
-  addMembership(
+  @Post(':userId/residences')
+  addUserResidence(
     @Param('userId', new ParseUUIDPipe()) userId: string,
-    @Body() params: AddUserMembershipDto,
+    @Body() params: AddUserResidenceDto,
   ) {
-    return this.usersService.addMembership(userId, params);
+    return this.usersService.addUserResidence(userId, params);
   }
 
   @Put(':userId')
@@ -52,13 +52,18 @@ export class UsersController {
     return this.usersService.softDelete(userId);
   }
 
-  @Delete(':userId/memberships/:condominiumId/:unitId')
-  removeMembership(
+  @Delete(':userId/permanent')
+  permanentlyDelete(@Param('userId', new ParseUUIDPipe()) userId: string) {
+    return this.usersService.permanentlyDelete(userId);
+  }
+
+  @Delete(':userId/residences/:condominiumId/:unitId')
+  removeUserResidence(
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @Param('condominiumId', new ParseUUIDPipe()) condominiumId: string,
     @Param('unitId', new ParseUUIDPipe()) unitId: string,
   ) {
-    return this.usersService.removeMembership(userId, condominiumId, unitId);
+    return this.usersService.removeUserResidence(userId, condominiumId, unitId);
   }
 
   @Delete(':condominiumId/trash')
@@ -71,11 +76,11 @@ export class UsersController {
     return this.usersService.restore(userId);
   }
 
-  @Patch(':userId/memberships/primary')
-  setPrimaryMembership(
+  @Patch(':userId/residences/primary')
+  setPrimaryUserResidence(
     @Param('userId', new ParseUUIDPipe()) userId: string,
-    @Body() params: SetPrimaryMembershipDto,
+    @Body() params: SetPrimaryUserResidenceDto,
   ) {
-    return this.usersService.setPrimaryMembership(userId, params);
+    return this.usersService.setPrimaryUserResidence(userId, params);
   }
 }
