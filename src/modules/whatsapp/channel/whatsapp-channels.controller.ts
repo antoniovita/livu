@@ -1,8 +1,16 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { WhatsappChannelService } from './whatsapp-channel.service';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+
 import { CreateWhatsAppChannelDto } from './dto/create-whatsapp-channel.dto';
 import { UpdateWhatsAppChannelDto } from './dto/update-whatsapp-channel.dto';
 
+import { WhatsappChannelService } from './whatsapp-channel.service';
+
+import { PlatformRoles } from 'src/common/decorators/platform-roles.decorator';
+import { PlatformRolesGuard } from 'src/common/guards/platform-roles.guard';
+import { PlatformAuthGuard } from 'src/common/guards/platform-auth.guard';
+
+@UseGuards(PlatformAuthGuard, PlatformRolesGuard)
+@PlatformRoles('ADMIN', 'OPS')
 @Controller('whatsapp/channels')
 export class WhatsappChannelsController {
   constructor(private readonly channelService: WhatsappChannelService) {}

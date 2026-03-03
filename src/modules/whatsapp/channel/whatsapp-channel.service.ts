@@ -21,16 +21,8 @@ export class WhatsappChannelService {
   }
 
   async createChannel(dto: CreateWhatsAppChannelDto) {
-    await this.ensureCondominiumExists(dto.condominiumId);
-
-    const existingChannel = await this.prisma.whatsAppChannel.findUnique({
-      where: {
-        condominiumId: dto.condominiumId,
-      },
-    });
-
-    if (existingChannel) {
-      throw new ConflictException('Condominium already has a WhatsApp channel');
+    if ((dto.status ?? 'ACTIVE') === 'ACTIVE' && (await this.hasActiveGlobalChannel())) {
+      throw new ConflictException('An active global WhatsApp channel already exists');
     }
 
     return this.prisma.whatsAppChannel.create({
@@ -39,6 +31,21 @@ export class WhatsappChannelService {
   }
 
   async updateChannel(channelId: string, dto: UpdateWhatsAppChannelDto) {
+    if (dto.status === 'ACTIVE') {
+      const activeChannel = await this.prisma.whatsAppChannel.findFirst({
+        where: {
+          status: 'ACTIVE',
+          id: {
+            not: channelId,
+          },
+        },
+      });
+
+      if (activeChannel) {
+        throw new ConflictException('An active global WhatsApp channel already exists');
+      }
+    }
+
     return this.prisma.whatsAppChannel.update({
       where: { id: channelId },
       data: dto,
@@ -67,13 +74,13 @@ export class WhatsappChannelService {
     return channel;
   }
 
-  private async ensureCondominiumExists(condominiumId: string) {
-    const condominium = await this.prisma.condominium.findUnique({
-      where: { id: condominiumId },
+  private async hasActiveGlobalChannel() {
+    const activeChannel = await this.prisma.whatsAppChannel.findFirst({
+      where: {
+        status: 'ACTIVE',
+      },
     });
 
-    if (!condominium) {
-      throw new NotFoundException('Condominium not found');
-    }
+    return Boolean(activeChannel);
   }
 }

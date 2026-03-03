@@ -1,6 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ConversationStateService } from './conversation-state.service';
-import { ConversationQueryDto } from './dto/conversation-query.dto';
+import { ConversationQueryDto } from '../channel/dto/conversation-query.dto';
 
 @Controller('bot')
 export class BotAdminController {

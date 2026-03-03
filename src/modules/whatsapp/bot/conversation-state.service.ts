@@ -7,11 +7,7 @@ const CONVERSATION_TTL_MINUTES = 30;
 export class ConversationStateService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getOrCreateActiveContext(
-    channelId: string,
-    condominiumId: string,
-    phone: string,
-  ) {
+  async getOrCreateActiveContext(channelId: string, phone: string) {
     const now = new Date();
 
     const context = await this.prisma.conversationContext.findFirst({
@@ -34,7 +30,6 @@ export class ConversationStateService {
     return this.prisma.conversationContext.create({
       data: {
         channelId,
-        condominiumId,
         phone,
         state: 'IDLE',
         contextJson: {},
@@ -69,6 +64,7 @@ export class ConversationStateService {
     data: {
       state?: string;
       userId?: string | null;
+      condominiumId?: string | null;
       selectedUnitId?: string | null;
       contextJson?: Record<string, unknown>;
     },
@@ -78,7 +74,8 @@ export class ConversationStateService {
       data: {
         state: data.state,
         userId: data.userId,
-        selectedUnitId: data.selectedUnitId ?? null,
+        condominiumId: data.condominiumId,
+        selectedUnitId: data.selectedUnitId,
         contextJson: data.contextJson,
         expiresAt: this.buildExpirationDate(),
       },
@@ -90,6 +87,7 @@ export class ConversationStateService {
       where: { id: contextId },
       data: {
         userId: null,
+        condominiumId: null,
         selectedUnitId: null,
         state: 'IDLE',
         contextJson: {},

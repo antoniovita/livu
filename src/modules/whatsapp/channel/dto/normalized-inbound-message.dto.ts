@@ -5,6 +5,6 @@ export class NormalizedInboundMessageDto {
   messageType: string;
   text?: string;
   interactiveReplyId?: string;
-  sentAt: Date;
-  rawPayload?: Record<string, unknown>;
+  sentAt: string;
+  rawPayload: Record<string, any>;
 }

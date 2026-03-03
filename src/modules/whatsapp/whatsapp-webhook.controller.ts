@@ -1,5 +1,5 @@
 import { Body, Controller, Headers, HttpCode, Param, Post } from '@nestjs/common';
-import { WhatsappRouterService } from './whatsapp-router.service';
+import { WhatsappRouterService } from './bot/whatsapp-router.service';
 
 @Controller('webhooks/whatsapp')
 export class WhatsappWebhooksController {

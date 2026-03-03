@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { normalizePhone } from 'src/common/utils/phone.util';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -51,12 +52,13 @@ export class UsersService {
 
   async create(dto: CreateUserDto) {
     await this.ensureUnitBelongsToCondominium(dto.condominiumId, dto.unitId);
+    const normalizedPhone = normalizePhone(dto.phone);
 
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           fullName: dto.fullName,
-          phone: dto.phone,
+          phone: normalizedPhone,
           status: 'ACTIVE',
         },
       });
@@ -103,8 +105,13 @@ export class UsersService {
   }
 
   async update(userId: string, dto: UpdateUserDto) {
+    const data = {
+      ...dto,
+      ...(dto.phone ? { phone: normalizePhone(dto.phone) } : {}),
+    };
+
     return this.prisma.user.update({
-      data: dto,
+      data,
       where: { id: userId },
     });
   }

@@ -1,9 +1,6 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateWhatsAppChannelDto {
-  @IsUUID()
-  condominiumId: string;
-
   @IsString()
   @IsNotEmpty()
   provider: string;
@@ -25,5 +22,7 @@ export class CreateWhatsAppChannelDto {
   webhookSecret: string;
 
   @IsOptional()
-  settingsJson?: Record<string, unknown>;
+  @IsString()
+  @IsIn(['ACTIVE', 'INACTIVE'])
+  status?: 'ACTIVE' | 'INACTIVE';
 }

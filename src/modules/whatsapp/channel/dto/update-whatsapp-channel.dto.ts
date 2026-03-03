@@ -25,7 +25,4 @@ export class UpdateWhatsAppChannelDto {
   @IsString()
   @IsIn(['ACTIVE', 'INACTIVE'])
   status?: 'ACTIVE' | 'INACTIVE';
-
-  @IsOptional()
-  settingsJson?: Record<string, unknown>;
 }
