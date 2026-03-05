@@ -110,17 +110,27 @@ model Subscription {
 }
 
 model Client {
-  id            String         @id @default(uuid()) @db.Uuid
-  name          String
-  email         String
-  phone         String?
-  password      String
-  status        String         @default("ACTIVE")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  subscriptions Subscription[]
+  id                        String         @id @default(uuid()) @db.Uuid
+  name                      String
+  email                     String         @unique
+  pendingEmail              String?        @unique
+  pendingEmailCodeHash      String?
+  pendingEmailCodeExpiresAt DateTime?
+  pendingEmailAttempts      Int            @default(0)
+  pendingEmailLastSentAt    DateTime?
+  emailVerifiedAt           DateTime?
+  phone                     String?        @unique
+  pendingPhone              String?        @unique
+  pendingPhoneCode          String?
+  pendingPhoneCodeExpiresAt DateTime?
+  phoneVerifiedAt           DateTime?
+  passwordHash              String
+  status                    String         @default("ACTIVE")
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  subscriptions             Subscription[]
 
-  condominiums  Condominium[]
+  condominiums              Condominium[]
 }
 
 model Condominium {
